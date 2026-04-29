@@ -24,7 +24,15 @@ className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition h
 Voir les commandes QR code et gérer leur statut.
 </p>
 </Link>
-
+<Link
+href="/admin/tables"
+className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-orange-500"
+>
+<h2 className="text-xl font-bold">Tables & additions</h2>
+<p className="mt-2 text-sm text-neutral-400">
+Voir les totaux par table, les commandes et les demandes actives.
+</p>
+</Link>
 <Link
 href="/admin/menu"
 className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-orange-500"

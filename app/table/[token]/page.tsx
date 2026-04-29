@@ -222,14 +222,55 @@ alert(error instanceof Error ? error.message : String(error));
 }
 }
 
-function callServer() {
+async function callServer() {
+try {
+const response = await fetch("/api/requests", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+},
+body: JSON.stringify({
+tableToken: token,
+type: "call_server",
+}),
+});
+
+const data = await response.json();
+
+if (!response.ok || !data.ok) {
+throw new Error(data.error || "Impossible d’appeler le serveur.");
+}
+
 alert("Votre demande a été envoyée au serveur.");
+} catch (error) {
+alert(error instanceof Error ? error.message : String(error));
+}
 }
 
-function requestBill() {
+async function requestBill() {
+try {
+const response = await fetch("/api/requests", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+},
+body: JSON.stringify({
+tableToken: token,
+type: "request_bill",
+}),
+});
+
+const data = await response.json();
+
+if (!response.ok || !data.ok) {
+throw new Error(data.error || "Impossible de demander l’addition.");
+}
+
 alert("Votre demande d’addition a été envoyée.");
+} catch (error) {
+alert(error instanceof Error ? error.message : String(error));
 }
-
+}
 return (
 <main className="min-h-screen bg-neutral-950 pb-40 text-white">
 <section className="mx-auto max-w-5xl px-4 py-6">

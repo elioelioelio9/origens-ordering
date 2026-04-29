@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import type { OrderStatus, RestaurantOrder } from "@/types/order";
 
 type AdminOrder = RestaurantOrder & {
 path: string;
 tableToken?: string;
 };
+type TableRequest = {
+id: string;
+path: string;
+tableToken: string;
+type: "call_server" | "request_bill";
+status: "new" | "done" | "cancelled";
+createdAt: string;
+updatedAt: string;
+};
+
+
+
+
 
 type OrderFilter = "active" | "served" | "cancelled" | "all";
 
@@ -33,6 +46,16 @@ cancelled: "Annulées",
 all: "Toutes",
 };
 
+const requestLabels: Record<TableRequest["type"], string> = {
+call_server: "Appel serveur",
+request_bill: "Demande d'addition",
+};
+
+
+
+
+
+
 function getStatusClass(status: OrderStatus) {
 if (status === "new") return "bg-blue-500/15 text-blue-300";
 if (status === "accepted") return "bg-yellow-500/15 text-yellow-300";
@@ -47,6 +70,7 @@ const [orders, setOrders] = useState<AdminOrder[]>([]);
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState("");
 const [filter, setFilter] = useState<OrderFilter>("active");
+const [requests, setRequests] = useState<TableRequest[]>([]);
 
 async function loadOrders() {
 try {
@@ -71,17 +95,42 @@ setLoading(false);
 }
 }
 
+
+async function loadRequests() {
+try {
+const response = await fetch("/api/requests", {
+method: "GET",
+cache: "no-store",
+});
+
+const data = await response.json();
+
+if (!response.ok || !data.ok) {
+throw new Error(data.error || "Impossible de charger les demandes.");
+}
+
+setRequests(data.requests);
+} catch (error) {
+console.error("Load requests error:", error);
+}
+}
+
+
+
 useEffect(() => {
 loadOrders();
+loadRequests();
 
 const interval = window.setInterval(() => {
 loadOrders();
+loadRequests();
 }, 2000);
 
 return () => {
 window.clearInterval(interval);
 };
 }, []);
+
 
 const filteredOrders = useMemo(() => {
 if (filter === "all") return orders;
@@ -112,7 +161,9 @@ cancelled,
 all: orders.length,
 };
 }, [orders]);
-
+const activeRequests = useMemo(() => {
+return requests.filter((request) => request.status === "new");
+}, [requests]);
 async function updateOrderStatus(order: AdminOrder, status: OrderStatus) {
 try {
 const response = await fetch("/api/orders", {
@@ -139,6 +190,42 @@ alert(error instanceof Error ? error.message : String(error));
 }
 }
 
+async function updateRequestStatus(
+request: TableRequest,
+status: TableRequest["status"]
+) {
+try {
+const response = await fetch("/api/requests", {
+method: "PATCH",
+headers: {
+"Content-Type": "application/json",
+},
+body: JSON.stringify({
+requestPath: request.path,
+status,
+}),
+});
+
+const data = await response.json();
+
+if (!response.ok || !data.ok) {
+throw new Error(data.error || "Impossible de modifier la demande.");
+}
+
+await loadRequests();
+} catch (error) {
+console.error("Update request error:", error);
+alert(error instanceof Error ? error.message : String(error));
+}
+}
+
+
+
+
+
+
+
+
 return (
 <main className="min-h-screen bg-neutral-950 p-6 text-white">
 <div className="mx-auto max-w-6xl">
@@ -153,7 +240,60 @@ Origens BBQ
 Les commandes envoyées depuis les QR codes apparaissent ici.
 </p>
 </header>
+<section className="mt-6">
+<div className="flex items-center justify-between gap-4">
+<h2 className="text-xl font-bold">Demandes de table</h2>
 
+<p className="text-sm text-neutral-400">
+{activeRequests.length} demande(s) active(s)
+</p>
+</div>
+
+{activeRequests.length === 0 ? (
+<p className="mt-3 rounded-2xl bg-neutral-900 p-4 text-sm text-neutral-400">
+Aucune demande active.
+</p>
+) : (
+<div className="mt-4 grid gap-3 md:grid-cols-2">
+{activeRequests.map((request) => (
+<article
+key={request.id}
+className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4"
+>
+<p className="text-sm text-orange-300">
+{requestLabels[request.type]}
+</p>
+
+<h3 className="mt-1 text-xl font-bold">
+Table : {request.tableToken}
+</h3>
+
+<p className="mt-2 text-sm text-neutral-400">
+{request.createdAt
+? new Date(request.createdAt).toLocaleString("fr-CH")
+: ""}
+</p>
+
+<div className="mt-4 flex gap-2">
+<button
+onClick={() => updateRequestStatus(request, "done")}
+className="rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white"
+>
+Marquer comme traitée
+</button>
+
+<button
+onClick={() => updateRequestStatus(request, "cancelled")}
+className="rounded-full bg-neutral-800 px-4 py-2 text-sm font-semibold text-white"
+>
+Annuler
+</button>
+</div>
+</article>
+))}
+</div>
+)}
+</section>
 <section className="mt-6 flex flex-wrap gap-2">
 {(["active", "served", "cancelled", "all"] as OrderFilter[]).map(
 (item) => (
