@@ -25,6 +25,15 @@ Voir les commandes QR code et gérer leur statut.
 </p>
 </Link>
 <Link
+href="/admin/qr"
+className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-orange-500"
+>
+<h2 className="text-xl font-bold">QR codes & liens</h2>
+<p className="mt-2 text-sm text-neutral-400">
+Voir et copier les liens clients pour chaque table.
+</p>
+</Link>
+<Link
 href="/admin/tables"
 className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 transition hover:border-orange-500"
 >
