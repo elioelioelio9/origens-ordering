@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import { categories, menuItems } from "@/lib/data/mock-menu";
+import type { MenuCategory, MenuItem } from "@/types/menu";
 import type { CartItem, OrderStatus } from "@/types/order";
 import { getTableLabelFromToken } from "@/lib/data/tables";
 
@@ -50,7 +50,9 @@ export default function TableOrderPage({ params }: Props) {
 const { token } = use(params);
 const tableLabel = getTableLabelFromToken(token);
 
-const [activeCategoryId, setActiveCategoryId] = useState(categories[0]?.id);
+const [categories, setCategories] = useState<MenuCategory[]>([]);
+const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+const [activeCategoryId, setActiveCategoryId] = useState("");
 const [cart, setCart] = useState<CartItem[]>([]);
 const [tableOrders, setTableOrders] = useState<TableOrder[]>([]);
 const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +80,29 @@ return sum + order.total;
 const totalItemsInCart = cart.reduce((sum, item) => {
 return sum + item.quantity;
 }, 0);
+async function loadMenu() {
+try {
+const response = await fetch("/api/menu", {
+method: "GET",
+cache: "no-store",
+});
 
+const data = await response.json();
+
+if (!response.ok || !data.ok) {
+throw new Error(data.error || "Impossible de charger le menu.");
+}
+
+setCategories(data.categories);
+setMenuItems(data.items);
+
+if (!activeCategoryId && data.categories.length > 0) {
+setActiveCategoryId(data.categories[0].id);
+}
+} catch (error) {
+console.error("Load menu error:", error);
+}
+}
 async function loadTableOrders() {
 try {
 const response = await fetch(
@@ -102,6 +126,7 @@ console.error("Load table orders error:", error);
 }
 
 useEffect(() => {
+loadMenu();
 loadTableOrders();
 
 const interval = window.setInterval(() => {
