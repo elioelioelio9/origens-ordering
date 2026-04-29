@@ -4,9 +4,17 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { MenuCategory, MenuItem } from "@/types/menu";
 
+type MenuDraft = {
+name: string;
+description: string;
+price: string;
+imageUrl: string;
+};
+
 export default function AdminMenuPage() {
 const [categories, setCategories] = useState<MenuCategory[]>([]);
 const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+const [drafts, setDrafts] = useState<Record<string, MenuDraft>>({});
 const [loading, setLoading] = useState(true);
 const [error, setError] = useState("");
 
@@ -25,6 +33,19 @@ throw new Error(data.error || "Impossible de charger le menu.");
 
 setCategories(data.categories);
 setMenuItems(data.items);
+
+const nextDrafts: Record<string, MenuDraft> = {};
+
+data.items.forEach((item: MenuItem) => {
+nextDrafts[item.id] = {
+name: item.name,
+description: item.description,
+price: String(item.price),
+imageUrl: item.imageUrl ?? "",
+};
+});
+
+setDrafts(nextDrafts);
 setError("");
 } catch (error) {
 console.error("Load menu error:", error);
@@ -61,9 +82,13 @@ await loadMenu();
 alert(error instanceof Error ? error.message : String(error));
 }
 }
+
 async function updateMenuItem(
 itemId: string,
 updates: {
+name?: string;
+description?: string;
+imageUrl?: string;
 active?: boolean;
 available?: boolean;
 price?: number;
@@ -88,10 +113,44 @@ throw new Error(data.error || "Impossible de modifier le plat.");
 }
 
 await loadMenu();
-
 } catch (error) {
 alert(error instanceof Error ? error.message : String(error));
 }
+}
+
+async function saveItem(item: MenuItem) {
+const draft = drafts[item.id];
+
+if (!draft) return;
+
+const price = Number(draft.price.replace(",", "."));
+
+if (!draft.name.trim()) {
+alert("Le nom du plat est obligatoire.");
+return;
+}
+
+if (!Number.isFinite(price) || price <= 0) {
+alert("Prix invalide.");
+return;
+}
+
+await updateMenuItem(item.id, {
+name: draft.name.trim(),
+description: draft.description.trim(),
+imageUrl: draft.imageUrl.trim(),
+price,
+});
+}
+
+function updateDraft(itemId: string, updates: Partial<MenuDraft>) {
+setDrafts((current) => ({
+...current,
+[itemId]: {
+...current[itemId],
+...updates,
+},
+}));
 }
 
 useEffect(() => {
@@ -112,7 +171,7 @@ Origens BBQ
 <h1 className="mt-2 text-3xl font-bold">Gestion du menu</h1>
 
 <p className="mt-2 text-sm text-neutral-400">
-Gérez les plats, les prix et les disponibilités du menu.
+Modifiez les plats, les prix, les descriptions, les photos et les disponibilités.
 </p>
 
 <div className="mt-5 flex flex-wrap gap-2">
@@ -199,11 +258,22 @@ return (
 </div>
 
 <div className="grid gap-4 md:grid-cols-2">
-{items.map((item) => (
+{items.map((item) => {
+const draft = drafts[item.id];
+
+return (
 <article
 key={item.id}
 className="rounded-3xl border border-neutral-800 bg-neutral-900 p-5"
 >
+{item.imageUrl ? (
+<img
+src={item.imageUrl}
+alt={item.name}
+className="mb-4 h-48 w-full rounded-2xl object-cover"
+/>
+) : null}
+
 <div className="flex items-start justify-between gap-4">
 <div>
 <h3 className="text-xl font-bold">
@@ -243,6 +313,7 @@ item.available
 : "Indisponible"}
 </span>
 </div>
+
 <div className="mt-4 flex flex-wrap gap-2">
 <button
 onClick={() =>
@@ -252,7 +323,9 @@ available: !item.available,
 }
 className="rounded-full bg-neutral-800 px-4 py-2 text-sm font-semibold text-white"
 >
-{item.available ? "Marquer indisponible" : "Marquer disponible"}
+{item.available
+? "Marquer indisponible"
+: "Marquer disponible"}
 </button>
 
 <button
@@ -267,15 +340,79 @@ className="rounded-full bg-neutral-800 px-4 py-2 text-sm font-semibold text-whit
 </button>
 </div>
 
+<div className="mt-5 space-y-4 rounded-2xl bg-neutral-950 p-4">
+<div>
+<label className="text-sm text-neutral-400">
+Nom du plat
+</label>
+<input
+value={draft?.name ?? ""}
+onChange={(event) =>
+updateDraft(item.id, {
+name: event.target.value,
+})
+}
+className="mt-2 w-full rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none focus:border-orange-500"
+/>
+</div>
 
+<div>
+<label className="text-sm text-neutral-400">
+Description
+</label>
+<textarea
+value={draft?.description ?? ""}
+onChange={(event) =>
+updateDraft(item.id, {
+description: event.target.value,
+})
+}
+rows={3}
+className="mt-2 w-full rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none focus:border-orange-500"
+/>
+</div>
 
+<div>
+<label className="text-sm text-neutral-400">
+Prix
+</label>
+<input
+value={draft?.price ?? ""}
+onChange={(event) =>
+updateDraft(item.id, {
+price: event.target.value,
+})
+}
+className="mt-2 w-full rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none focus:border-orange-500"
+/>
+</div>
 
+<div>
+<label className="text-sm text-neutral-400">
+URL de la photo
+</label>
+<input
+value={draft?.imageUrl ?? ""}
+onChange={(event) =>
+updateDraft(item.id, {
+imageUrl: event.target.value,
+})
+}
+placeholder="https://..."
+className="mt-2 w-full rounded-2xl border border-neutral-800 bg-neutral-900 px-4 py-3 text-sm text-white outline-none focus:border-orange-500"
+/>
+</div>
 
-
-
-
+<button
+onClick={() => saveItem(item)}
+className="w-full rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white"
+>
+Enregistrer les modifications
+</button>
+</div>
 </article>
-))}
+);
+})}
 </div>
 </section>
 );

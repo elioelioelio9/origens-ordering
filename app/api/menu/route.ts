@@ -10,6 +10,9 @@ const RESTAURANT_DOC_ID = "origens-bbq";
 
 const updateMenuItemSchema = z.object({
 itemId: z.string().min(1),
+name: z.string().min(1).optional(),
+description: z.string().optional(),
+imageUrl: z.string().optional(),
 active: z.boolean().optional(),
 available: z.boolean().optional(),
 price: z.number().positive().optional(),
