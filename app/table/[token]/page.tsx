@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import { categories, menuItems } from "@/lib/data/mock-menu";
 import type { CartItem, OrderStatus } from "@/types/order";
+import { getTableLabelFromToken } from "@/lib/data/tables";
 
 type Props = {
 params: Promise<{
@@ -47,6 +48,7 @@ return "bg-red-500/15 text-red-300";
 
 export default function TableOrderPage({ params }: Props) {
 const { token } = use(params);
+const tableLabel = getTableLabelFromToken(token);
 
 const [activeCategoryId, setActiveCategoryId] = useState(categories[0]?.id);
 const [cart, setCart] = useState<CartItem[]>([]);
@@ -282,7 +284,7 @@ Origens BBQ
 <h1 className="mt-2 text-3xl font-bold">Commander à table</h1>
 
 <p className="mt-2 text-sm text-neutral-400">
-Table : <span className="text-neutral-200">{token}</span>
+Table : <span className="text-neutral-200">{tableLabel}</span>
 </p>
 
 <div className="mt-5 grid gap-3 sm:grid-cols-3">

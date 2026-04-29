@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
+import { clear } from "console";
+import { getTableLabelFromToken } from "@/lib/data/tables";
+import { ta } from "zod/locales";
 
 export const runtime = "nodejs";
 
@@ -57,8 +60,11 @@ type: data.type ?? "call_server",
 status: data.status ?? "new",
 createdAt: serializeFirestoreDate(data.createdAt),
 updatedAt: serializeFirestoreDate(data.updatedAt),
+cleared: data.cleared ?? false, 
+tableLabel: data.tableLabel ?? data.tableToken ?? "",
 };
 })
+.filter((request) => !request.cleared)
 .sort((a, b) => {
 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -101,7 +107,7 @@ status: 400,
 }
 );
 }
-
+const tableLabel = getTableLabelFromToken(parsed.data.tableToken);
 const requestRef = adminDb
 .collection("restaurants")
 .doc(RESTAURANT_DOC_ID)
@@ -114,6 +120,7 @@ await requestRef.set({
 id: requestRef.id,
 restaurantId: RESTAURANT_DOC_ID,
 tableToken: parsed.data.tableToken,
+tableLabel,
 type: parsed.data.type,
 status: "new",
 createdAt: now,

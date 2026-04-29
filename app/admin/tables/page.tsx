@@ -13,10 +13,12 @@ type TableRequest = {
 id: string;
 path: string;
 tableToken: string;
+tableLabel?: string;
 type: "call_server" | "request_bill";
 status: "new" | "done" | "cancelled";
 createdAt: string;
 updatedAt: string;
+
 };
 
 type TableSummary = {
@@ -81,7 +83,36 @@ setError(error instanceof Error ? error.message : String(error));
 setLoading(false);
 }
 }
+async function resetTable(tableToken: string) {
+const confirmed = window.confirm(
+`Remettre ${tableToken} à zéro ? Les commandes et demandes ne seront plus visibles pour cette table.`
+);
 
+if (!confirmed) return;
+
+try {
+const response = await fetch("/api/tables/reset", {
+method: "POST",
+headers: {
+"Content-Type": "application/json",
+},
+body: JSON.stringify({
+tableToken,
+}),
+});
+
+const data = await response.json();
+
+if (!response.ok || !data.ok) {
+throw new Error(data.error || "Impossible de remettre la table à zéro.");
+}
+
+await loadData();
+} catch (error) {
+console.error("Reset table error:", error);
+alert(error instanceof Error ? error.message : String(error));
+}
+}
 useEffect(() => {
 loadData();
 
@@ -126,7 +157,7 @@ summary.activeOrdersCount += 1;
 }
 
 for (const request of requests) {
-const tableToken = request.tableToken || "Table inconnue";
+const tableToken = request.tableLabel || request.tableToken || "Table inconnue";
 
 if (!map.has(tableToken)) {
 map.set(tableToken, {
@@ -235,6 +266,14 @@ Demandes actives
 {table.requests.length}
 </p>
 </div>
+</div>
+<div className="mt-5">
+<button
+onClick={() => resetTable(table.tableToken)}
+className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white"
+>
+Remettre la table à zéro
+</button>
 </div>
 
 {table.requests.length > 0 ? (

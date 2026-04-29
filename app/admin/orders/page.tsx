@@ -11,6 +11,7 @@ type TableRequest = {
 id: string;
 path: string;
 tableToken: string;
+tableLabel?: string;
 type: "call_server" | "request_bill";
 status: "new" | "done" | "cancelled";
 createdAt: string;
@@ -265,7 +266,7 @@ className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4"
 </p>
 
 <h3 className="mt-1 text-xl font-bold">
-Table : {request.tableToken}
+Table : {request.tableLabel || request.tableToken}
 </h3>
 
 <p className="mt-2 text-sm text-neutral-400">

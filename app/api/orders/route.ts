@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { adminDb } from "@/lib/firebase/admin";
+import { getTableLabelFromToken } from "@/lib/data/tables";
 
 export const runtime = "nodejs";
 
@@ -82,8 +83,11 @@ total: data.total ?? 0,
 customerNote: data.customerNote ?? "",
 createdAt: serializeFirestoreDate(data.createdAt),
 updatedAt: serializeFirestoreDate(data.updatedAt),
+cleared: data.cleared ?? false,
 };
 })
+
+.filter((order) => !order.cleared)
 .sort((a, b) => {
 const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
 const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -133,6 +137,7 @@ status: 400,
 }
 
 const { tableToken, items } = parsed.data;
+const tableLabel = getTableLabelFromToken(tableToken);
 
 const total = items.reduce((sum, item) => {
 return sum + item.price * item.quantity;
@@ -151,7 +156,7 @@ id: orderRef.id,
 restaurantId: RESTAURANT_DOC_ID,
 type: "dine_in",
 tableToken,
-tableLabel: tableToken,
+tableLabel,
 status: "new",
 items: items.map((item) => ({
 itemId: item.itemId,
