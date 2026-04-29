@@ -14,6 +14,8 @@ price: number;
 imageUrl?: string;
 active: boolean;
 available: boolean;
+order?: number;
+isDailySpecial?: boolean;
 tags?: string[];
 allergens?: string[];
 };
